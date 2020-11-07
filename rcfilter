@@ -1,0 +1,7 @@
+# filter file for rclone backup to google drive (backup_iotstack)
+# Copies only .tar and .tar.gz files, ignoring everything else (including the influxdb folder)
+
+- /influxdb/**
++ *.tar
++ *.tar.gz
+- *
