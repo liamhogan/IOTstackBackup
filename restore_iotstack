@@ -1,14 +1,12 @@
 #!/bin/bash
 
+#Paraphraser's IOTstack restore script - modified by liamhogan
+#UPDATETAG = 20201107-1403
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: restore_iotstack runtag (eg yyyy-mm-dd_hhmm)"
 	exit -1
 fi
-
-# define the backup host
-SCPNAME="myhost.mydomain.com"
-SCPUSER="myuser"
-SCPPATH="/path/to/backup/directory/on/myhost"
 
 # snapshot the current date and time
 RUNTAG=$1
@@ -30,30 +28,34 @@ mkdir -p "$GENERALDIR"
 cd "$RESTOREDIR"
 
 # now we can begin
-echo "----- Restoring backup images for $RUNTAG -----"
+echo "----- Pulling backup images for $RUNTAG from gdrive -----"
 
-scp $SCPUSER@$SCPNAME:$SCPPATH/$RUNTAG.$GENERALBACKUP $GENERALBACKUP
-scp $SCPUSER@$SCPNAME:$SCPPATH/$RUNTAG.$INFLUXBACKUP $INFLUXBACKUP
+rclone copy -P gdrive:/Backups/IOTstack/$RUNTAG.$GENERALBACKUP $RESTOREDIR
+rclone copy -P gdrive:/Backups/IOTstack/$RUNTAG.$INFLUXBACKUP $RESTOREDIR
 
 echo "----- Unpacking the general backup -----"
 
 cd "$GENERALDIR"
 sudo tar -x --same-owner -z -f ../$GENERALBACKUP
 
-echo "----- deactivating the stack -----"
+echo "----- Deactivating the stack -----"
 
 cd "$IOTSTACK"
 docker-compose down
 
-echo "----- removing old volumes and services directories -----"
+echo "----- Removing old volumes and services directories -----"
 
 sudo rm -rf ./services ./volumes
 
-echo "----- moving backup volumes and services into place -----"
+echo "----- Moving backup volumes and services into place -----"
 
 sudo mv ./restore/general/services .
 sudo mv ./restore/general/volumes .
-sudo mv ./restore/general/docker-compose.yml ./docker-compose.yml.$RUNTAG
+
+echo "----- Swapping docker-compose file -----"
+
+sudo mv ./docker-compose.yml ./docker-compose.yml.old
+sudo mv ./restore/general/docker-compose.yml ./docker-compose.yml
 
 echo "----- Unpacking the influx backup -----"
 
@@ -73,4 +75,4 @@ echo "----- cleaning up -----"
 
 rm -rf "$RESTOREDIR"
 
-echo "Restore complete"
+echo "Restore complete!"

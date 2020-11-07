@@ -1,9 +1,7 @@
 #!/bin/bash
 
-# define your backup host
-SCPNAME="myhost.mydomain.com"
-SCPUSER="myuser"
-SCPPATH="/path/to/backup/directory/on/myhost"
+#Paraphraser's IOTstack backup script - modified by liamhogan
+#UPDATETAG = 20201107-1323
 
 # either use an optional argument or default to a datestamp
 RUNTAG=${1:-$(date +"%Y-%m-%d_%H%M")}
@@ -49,8 +47,6 @@ GENERALBACKUPPATH="$BACKUPDIR/$GENERALBACKUPFILE"
 # is Influx running?
 if [ $(docker ps | grep -c influxdb) -gt 0 ]; then
 
-	# yes! remember, stuff in here needs root permissions
-
 	# prepare the environment
 	echo "Moving old influxdb backups if they exist"
 	[ -d "$INFLUXBACKUPOLD" ] || sudo mkdir "$INFLUXBACKUPOLD"
@@ -61,7 +57,7 @@ if [ $(docker ps | grep -c influxdb) -gt 0 ]; then
 	echo "backing up Influx database"
 	docker exec influxdb influxd backup -portable /var/lib/influxdb/backup
 	echo "influxdb backup complete"
-	
+
 	# sweep the backup into a tar
 	echo "Sweeping $INFLUXBACKUPNEW into $INFLUXBACKUPPATH"
 	pushd "$INFLUXBACKUPNEW"
@@ -70,13 +66,13 @@ if [ $(docker ps | grep -c influxdb) -gt 0 ]; then
 
 fi
 
-#create the list of files to backup
+# create the list of files to backup
 backuplist="$(mktemp -p /dev/shm/)"
 echo "./docker-compose.yml" >$backuplist
 echo "./services/" >>$backuplist
 echo "./volumes/" >>$backuplist
 
-#compress the backups folders to archive
+# compress the backups folders to archive
 echo "compressing stack folders - except influx and nextcloud"
 sudo tar -czf \
 	"$GENERALBACKUPPATH" \
@@ -92,47 +88,48 @@ pushd "$BACKUPDIR"
 # was a general backup file created?
 if [ -e "$GENERALBACKUPFILE" ] ; then
 
-	# yes! set ownership
+	# set ownership
 	sudo chown pi:pi "$GENERALBACKUPFILE"
 
-	#report size of archive
+	# report size of archive
 	du -h "$GENERALBACKUPFILE"
 
-	# copy
-	scp "$GENERALBACKUPFILE" $SCPUSER@$SCPNAME:$SCPPATH
-
 	# cleanup
+  echo "deleting general backups older than 7 days"
 	ls -t1 *.$GENERALBACKUPNAME.* | tail -n +8 | xargs rm -f
 
 fi
 
-
+# was an influx backup file created?
 if [ -e "$INFLUXBACKUPFILE" ] ; then
 
-	#set permission for backup file
+	# set ownership
 	sudo chown pi:pi "$INFLUXBACKUPFILE"
-	
-	#report size of archive
+
+	# report size of archive
 	du -h "$INFLUXBACKUPFILE"
-	
-	# copy
-	scp "$INFLUXBACKUPFILE" $SCPUSER@$SCPNAME:$SCPPATH
 
 	# cleanup
+  echo "deleting influx backups older than 7 days"
 	ls -t1 *.$INFLUXBACKUPNAME.* | tail -n +8 | xargs rm -f
-	
+
 fi
 
-# copy the log
-scp "$LOGFILE" $SCPUSER@$SCPNAME:$SCPPATH
+# Google drive backup
+echo "syncing backup folder to Google Drive"
+# sync local backup folder to gdrive (older gdrive copies will be deleted to match)
+rclone sync $BACKUPDIR --filter-from $BACKUPDIR/rcfilter  gdrive:/Backups/IOTstack/
+echo "sync with Google Drive complete"
+
 
 # cleanup logs
+echo "deleting old logs"
 ls -t1 *.$LOGNAME.* | tail -n +8 | xargs rm -f
 
-# pop out of the backup directoru
+# pop out of the backup directory
 popd
 
 # pop out of IOTstack
 popd
 
-echo "Backup complete"
+echo "Backup process complete!"

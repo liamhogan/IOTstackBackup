@@ -1,5 +1,16 @@
 # IOTstack Backup and Restore
 
+This fork modifies @Paraphraser's great implementation of a backup & restore system for IOTstack. My modifications suit my individual use case for backup (removing SCP and adding Google drive upload/download via rclone instead). Your use case may well differ too so you are welcome to use my own modifications as a starting point or start from his original branch.
+
+'backup_iotstack' and 'restore_iotstack' go inside ~/bin
+'rcfilter' goes inside ~/IOTstack/Backups
+
+The scripts assume you have already set up rclone with your own Google Drive configuration as per the original sensorsiot/IOTstack backup instructions (https://sensorsiot.github.io/IOTstack/Backups/)
+
+Paraphraser's original ReadMe information is below for reference (obviously some of the functionality now differs from this)
+
+----------
+
 This project documents my approach to backup and restore of [SensorsIot/IOTstack](https://github.com/SensorsIot/IOTstack). My design goals were:
 
 1. Avoid the double-compression implicit in the official backup script:
@@ -7,7 +18,7 @@ This project documents my approach to backup and restore of [SensorsIot/IOTstack
 2. Use `scp` to copy the backups from my "live" RPi to another machine on my local network. In my case, the target folder on that "other machine" is within the scope of Dropbox so I get three levels of backup:
 	* The last five backups are stored on the local RPi in `~/IOTstack/backups/`
 	* On-site copies on the "other machine"
-	* Off-site copies in the Dropbox cloud. 
+	* Off-site copies in the Dropbox cloud.
 3. More consistent and `cron`-friendly logging of whatever was written to `stdout` and `stderr` as the backup script ran.
 4. Efficient restore of a backup.
 
@@ -130,7 +141,7 @@ The script:
 * Moves the restored `docker-compose.yml` into `~/IOTstack` as `docker-compose.yml.runtag`
 * Unpacks *yyyy-mm-dd_hhmm.influx-backup.tar* into `~/IOTstack/backups/influxdb/db`
 * Brings the stack up (at which point the InfluxDB databases will be empty)
-* Instructs InfluxDB to restore from the contents of `~/IOTstack/backups/influxdb/db`. See also [about InfluxDB database restoration](#aboutInfluxRestore) 
+* Instructs InfluxDB to restore from the contents of `~/IOTstack/backups/influxdb/db`. See also [about InfluxDB database restoration](#aboutInfluxRestore)
 * Removes `~/IOTstack/restore` and its contents.
 
 My usual work pattern is that I am restoring to a "test" RPi a backup taken on a "live" RPi. I also often edit `docker-compose.yml` on the "test" RPi before making equivalent changes on the "live" RPi. That's why the script does not replace `docker-compose.yml`. Change that behaviour if it doesn't suit your own needs.
