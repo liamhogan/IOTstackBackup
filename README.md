@@ -4,7 +4,7 @@ This fork modifies @Paraphraser's great implementation of a backup & restore sys
 
 'backup_iotstack' and 'restore_iotstack' go inside ~/bin
 
-'rcfilter' goes inside ~/IOTstack/Backups
+'rcfilter' goes inside ~/IOTstack/backups
 
 The scripts assume you have already set up rclone with your own Google Drive configuration as per the original sensorsiot/IOTstack backup instructions (https://sensorsiot.github.io/IOTstack/Backups/)
 
